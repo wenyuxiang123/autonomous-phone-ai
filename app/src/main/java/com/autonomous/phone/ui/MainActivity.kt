@@ -20,7 +20,8 @@ import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,6 +31,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import com.autonomous.phone.device.DeviceController
 import com.autonomous.phone.script.Action
 import com.autonomous.phone.script.Script
@@ -37,6 +39,9 @@ import com.autonomous.phone.script.ScriptExecutor
 import com.autonomous.phone.script.ScriptManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.Dispatchers
 
 class MainActivity : ComponentActivity() {
     
@@ -76,6 +81,7 @@ fun AutoControlScreen() {
     var currentScriptProgress by remember { mutableStateOf(0 to 0) }
     
     val scriptExecutor = remember { ScriptExecutor() }
+    val coroutineScope = rememberCoroutineScope()
     
     LaunchedEffect(Unit) {
         while (isActive) {
@@ -193,6 +199,7 @@ enum class Tab {
 
 @Composable
 fun ControlsTab(isAccessibilityEnabled: Boolean, addLog: (String, LogType) -> Unit) {
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -225,7 +232,7 @@ fun ControlsTab(isAccessibilityEnabled: Boolean, addLog: (String, LogType) -> Un
                 
                 if (!isAccessibilityEnabled) {
                     Button(
-                        onClick = { openAccessibilitySettings(androidx.compose.ui.platform.LocalContext.current) },
+                        onClick = { openAccessibilitySettings(context) },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("前往设置")
@@ -362,6 +369,7 @@ fun ScriptsTab(
 ) {
     val scripts = ScriptManager.getAllScripts()
     var selectedScript by remember { mutableStateOf<Script?>(null) }
+    val coroutineScope = rememberCoroutineScope()
     
     LaunchedEffect(scriptExecutor.isRunning) {
         onExecutionStateChange(
@@ -430,7 +438,7 @@ fun ScriptsTab(
                                 if (isAccessibilityEnabled && !scriptExecutor.isRunning) {
                                     selectedScript = script
                                     addLog("开始执行脚本: ${script.name}", LogType.INFO)
-                                    kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                                    coroutineScope.launch(Dispatchers.Main) {
                                         scriptExecutor.execute(script)
                                     }
                                 }
@@ -463,7 +471,7 @@ fun ScriptsTab(
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(Icons.Default.Stop, contentDescription = null)
+                Icon(Icons.Default.Close, contentDescription = null)
                 Spacer(modifier = Modifier.width(4.dp))
                 Text("停止")
             }
