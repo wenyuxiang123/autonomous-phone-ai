@@ -2,8 +2,6 @@ package com.autonomous.phone.ui
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -18,10 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.autonomous.phone.device.DeviceController
-import com.autonomous.phone.service.AutoControlAccessibilityService
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     
@@ -41,7 +36,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AutoControlScreen() {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     
     var isAccessibilityEnabled by remember { mutableStateOf(isAccessibilityServiceEnabled(context)) }
     var isAutoBrowsing by remember { mutableStateOf(false) }
@@ -56,6 +50,7 @@ fun AutoControlScreen() {
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("手机自主AI") })
+        }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -66,23 +61,47 @@ fun AutoControlScreen() {
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            PermissionCard(
-                enabled = isAccessibilityEnabled,
-                title = "无障碍服务",
-                description = if (isAccessibilityEnabled) "已开启" else "未开启",
-                onEnable = { openAccessibilitySettings(context) }
-            )
+            Card(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("无障碍服务", style = MaterialTheme.typography.titleMedium)
+                        if (isAccessibilityEnabled) {
+                            Text("已开启", color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                    
+                    Text(if (isAccessibilityEnabled) "已开启" else "未开启")
+                    
+                    if (!isAccessibilityEnabled) {
+                        Button(
+                            onClick = { openAccessibilitySettings(context) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("前往设置")
+                        }
+                    }
+                }
+            }
             
-            Divider()
+            HorizontalDivider()
             
             Text("测试功能", style = MaterialTheme.typography.titleMedium)
             
             Button(
                 onClick = {
-                    scope.launch {
-                        if (isAccessibilityEnabled) {
-                            DeviceController.performClick(540f, 1000f)
-                        }
+                    if (isAccessibilityEnabled) {
+                        DeviceController.performClick(540f, 1000f)
                     }
                 },
                 enabled = isAccessibilityEnabled,
@@ -93,10 +112,8 @@ fun AutoControlScreen() {
             
             Button(
                 onClick = {
-                    scope.launch {
-                        if (isAccessibilityEnabled) {
-                            DeviceController.scrollDown()
-                        }
+                    if (isAccessibilityEnabled) {
+                        DeviceController.scrollDown()
                     }
                 },
                 enabled = isAccessibilityEnabled,
@@ -107,10 +124,8 @@ fun AutoControlScreen() {
             
             Button(
                 onClick = {
-                    scope.launch {
-                        if (isAccessibilityEnabled) {
-                            DeviceController.pressHome()
-                        }
+                    if (isAccessibilityEnabled) {
+                        DeviceController.pressHome()
                     }
                 },
                 enabled = isAccessibilityEnabled,
@@ -121,10 +136,8 @@ fun AutoControlScreen() {
             
             Button(
                 onClick = {
-                    scope.launch {
-                        if (isAccessibilityEnabled) {
-                            DeviceController.pressBack()
-                        }
+                    if (isAccessibilityEnabled) {
+                        DeviceController.pressBack()
                     }
                 },
                 enabled = isAccessibilityEnabled,
@@ -133,7 +146,7 @@ fun AutoControlScreen() {
                 Text("返回上一页")
             }
             
-            Divider()
+            HorizontalDivider()
             
             Text("自动功能", style = MaterialTheme.typography.titleMedium)
             
@@ -161,44 +174,6 @@ fun AutoControlScreen() {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("自动刷抖音")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun PermissionCard(
-    enabled: Boolean,
-    title: String,
-    description: String,
-    onEnable: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
-                if (enabled) {
-                    Text("已开启", color = MaterialTheme.colorScheme.primary)
-                }
-            }
-            
-            Text(description)
-            
-            if (!enabled) {
-                Button(onClick = onEnable, modifier = Modifier.fillMaxWidth()) {
-                    Text("前往设置")
                 }
             }
         }
