@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">手机自主AI</string>
+    <string name="accessibility_service_description">允许手机自主AI控制您的设备，执行点击、滑动等操作</string>
 </resources>
