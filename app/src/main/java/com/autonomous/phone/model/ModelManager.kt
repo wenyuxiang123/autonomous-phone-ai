@@ -82,7 +82,7 @@ object ModelManager {
             connection.connectTimeout = 30000
             connection.readTimeout = 60000
             
-            val contentLength = connection.contentLength
+            val contentLength = connection.contentLength.toLong()
             if (contentLength <= 0) {
                 Log.e(TAG, "Content length is 0 or negative")
                 return@withContext false

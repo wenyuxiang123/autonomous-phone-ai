@@ -11,6 +11,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -301,7 +302,7 @@ fun AutoControlScreen() {
 
 enum class TabItem(val tab: Tab, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     CONTROLS(Tab.CONTROLS, "控制", Icons.Default.ArrowBack),
-    AI(Tab.AI, "AI", Icons.Default.AutoAwesome),
+    AI(Tab.AI, "AI", Icons.Default.Lightbulb),
     SCRIPTS(Tab.SCRIPTS, "脚本", Icons.Default.PlayArrow),
     ELEMENTS(Tab.ELEMENTS, "元素", Icons.Default.List),
     LOGS(Tab.LOGS, "日志", Icons.Default.Home)
