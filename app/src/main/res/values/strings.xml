@@ -1,3 +1,15 @@
 <resources>
     <string name="app_name">手机自主AI</string>
+    <string name="accessibility_service_description">允许手机自主AI控制您的设备，执行点击、滑动等操作</string>
+    <string name="enable_accessibility">开启无障碍服务</string>
+    <string name="accessibility_enabled">已开启</string>
+    <string name="accessibility_disabled">未开启</string>
+    <string name="go_to_settings">前往设置</string>
+    <string name="test_click">测试点击</string>
+    <string name="test_swipe">测试滑动</string>
+    <string name="test_home">返回首页</string>
+    <string name="test_back">返回上一页</string>
+    <string name="auto_browse_douyin">自动刷抖音</string>
+    <string name="start">开始</string>
+    <string name="stop">停止</string>
 </resources>
