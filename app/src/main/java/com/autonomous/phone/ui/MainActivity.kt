@@ -2,10 +2,14 @@ package com.autonomous.phone.ui
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -15,13 +19,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,11 +30,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
+import com.autonomous.phone.core.AutonomousEngine
+import com.autonomous.phone.core.VisionAnalyzer
 import com.autonomous.phone.device.DeviceController
+import com.autonomous.phone.device.ScreenCapture
+import com.autonomous.phone.model.ModelManager
 import com.autonomous.phone.script.Action
 import com.autonomous.phone.script.Script
 import com.autonomous.phone.script.ScriptExecutor
 import com.autonomous.phone.script.ScriptManager
+import com.autonomous.phone.service.AutonomousService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -64,26 +67,35 @@ data class LogEntry(
 )
 
 enum class LogType {
-    INFO, SUCCESS, ERROR, ACTION
+    INFO, SUCCESS, ERROR, ACTION, AI
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AutoControlScreen() {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     
     var isAccessibilityEnabled by remember { mutableStateOf(isAccessibilityServiceEnabled(context)) }
+    var isScreenCaptureEnabled by remember { mutableStateOf(ScreenCapture.isAvailable()) }
     var currentTab by remember { mutableStateOf(Tab.CONTROLS) }
     var logEntries by remember { mutableStateOf(mutableStateListOf<LogEntry>()) }
     var screenElements by remember { mutableStateOf(emptyList<com.autonomous.phone.device.ScreenElement>()) }
     var currentAppPackage by remember { mutableStateOf<String?>(null) }
     var isExecutingScript by remember { mutableStateOf(false) }
     var currentScriptProgress by remember { mutableStateOf(0 to 0) }
+    var isAiRunning by remember { mutableStateOf(false) }
+    var aiGoal by remember { mutableStateOf("") }
+    var aiStep by remember { mutableStateOf(0) }
+    var aiMessage by remember { mutableStateOf("") }
+    var modelStatus by remember { mutableStateOf<ModelManager.ModelStatus?>(null) }
     
     val scriptExecutor = remember { ScriptExecutor() }
-    val coroutineScope = rememberCoroutineScope()
     
     LaunchedEffect(Unit) {
+        ModelManager.init(context)
+        modelStatus = ModelManager.getModelStatus(context, ModelManager.MINICPM_V2_5_INT4)
+        
         while (isActive) {
             isAccessibilityEnabled = isAccessibilityServiceEnabled(context)
             if (isAccessibilityEnabled) {
@@ -95,6 +107,26 @@ fun AutoControlScreen() {
     
     val addLog: (String, LogType) -> Unit = { message, type ->
         logEntries.add(LogEntry(message, type))
+        if (logEntries.size > 100) {
+            logEntries.removeFirst()
+        }
+    }
+    
+    val screenCaptureLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK && result.data != null) {
+            ScreenCapture.initialize(context, result.resultCode, result.data!!)
+            isScreenCaptureEnabled = true
+            addLog("屏幕录制权限已获取", LogType.SUCCESS)
+        } else {
+            addLog("屏幕录制权限未获取", LogType.ERROR)
+        }
+    }
+    
+    fun requestScreenCapture() {
+        val projectionManager = context.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as android.media.projection.MediaProjectionManager
+        screenCaptureLauncher.launch(projectionManager.createScreenCaptureIntent())
     }
     
     Scaffold(
@@ -137,7 +169,86 @@ fun AutoControlScreen() {
                 when (currentTab) {
                     Tab.CONTROLS -> ControlsTab(
                         isAccessibilityEnabled = isAccessibilityEnabled,
-                        addLog = addLog
+                        isScreenCaptureEnabled = isScreenCaptureEnabled,
+                        modelStatus = modelStatus,
+                        addLog = addLog,
+                        onRequestScreenCapture = { requestScreenCapture() },
+                        onDownloadModel = {
+                            coroutineScope.launch(Dispatchers.IO) {
+                                addLog("开始下载模型...", LogType.INFO)
+                                ModelManager.downloadModel(context, ModelManager.MINICPM_V2_5_INT4) { progress ->
+                                    addLog("下载进度: ${progress.percentage}%", LogType.INFO)
+                                }.let { success ->
+                                    if (success) {
+                                        modelStatus = ModelManager.getModelStatus(context, ModelManager.MINICPM_V2_5_INT4)
+                                        addLog("模型下载完成", LogType.SUCCESS)
+                                    } else {
+                                        addLog("模型下载失败", LogType.ERROR)
+                                    }
+                                }
+                            }
+                        }
+                    )
+                    Tab.AI -> AiControlTab(
+                        isAccessibilityEnabled = isAccessibilityEnabled,
+                        isScreenCaptureEnabled = isScreenCaptureEnabled,
+                        isAiRunning = isAiRunning,
+                        aiGoal = aiGoal,
+                        aiStep = aiStep,
+                        aiMessage = aiMessage,
+                        addLog = addLog,
+                        onRequestScreenCapture = { requestScreenCapture() },
+                        onStartAi = { goal ->
+                            aiGoal = goal
+                            isAiRunning = true
+                            aiStep = 0
+                            aiMessage = "启动中..."
+                            
+                            addLog("AI任务开始: $goal", LogType.AI)
+                            
+                            coroutineScope.launch(Dispatchers.IO) {
+                                val result = AutonomousEngine.executeTask(context, goal) { step, message ->
+                                    aiStep = step
+                                    aiMessage = message
+                                    addLog("AI [$step]: $message", LogType.AI)
+                                }
+                                
+                                isAiRunning = false
+                                if (result.success) {
+                                    addLog("AI任务完成: ${result.message}", LogType.SUCCESS)
+                                } else {
+                                    addLog("AI任务失败: ${result.message}", LogType.ERROR)
+                                }
+                                aiMessage = result.message
+                            }
+                        },
+                        onStopAi = {
+                            AutonomousEngine.stop()
+                            isAiRunning = false
+                            addLog("AI任务已停止", LogType.INFO)
+                        },
+                        onAnalyzeScreen = {
+                            coroutineScope.launch(Dispatchers.IO) {
+                                if (!ScreenCapture.isAvailable()) {
+                                    addLog("请先获取屏幕录制权限", LogType.ERROR)
+                                    return@launch
+                                }
+                                
+                                addLog("开始分析屏幕...", LogType.INFO)
+                                val bitmap = ScreenCapture.capture()
+                                if (bitmap != null) {
+                                    val analysis = VisionAnalyzer.analyzeImage(context, bitmap)
+                                    addLog("屏幕分析完成", LogType.SUCCESS)
+                                    addLog("分析结果: ${analysis.text}", LogType.INFO)
+                                    analysis.objects.forEach { obj ->
+                                        addLog("检测到: ${obj.name} (${obj.confidence})", LogType.INFO)
+                                    }
+                                    bitmap.recycle()
+                                } else {
+                                    addLog("屏幕捕获失败", LogType.ERROR)
+                                }
+                            }
+                        }
                     )
                     Tab.SCRIPTS -> ScriptsTab(
                         isAccessibilityEnabled = isAccessibilityEnabled,
@@ -158,7 +269,7 @@ fun AutoControlScreen() {
                 }
             }
             
-            if (isExecutingScript) {
+            if (isExecutingScript || isAiRunning) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     color = MaterialTheme.colorScheme.secondaryContainer,
@@ -173,11 +284,19 @@ fun AutoControlScreen() {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp))
                         Spacer(modifier = Modifier.width(16.dp))
                         Column {
-                            Text("执行脚本中...", style = MaterialTheme.typography.titleSmall)
-                            Text(
-                                "进度: ${currentScriptProgress.first + 1}/${currentScriptProgress.second}",
-                                style = MaterialTheme.typography.bodySmall
-                            )
+                            if (isAiRunning) {
+                                Text("AI执行中...", style = MaterialTheme.typography.titleSmall)
+                                Text(
+                                    "$aiMessage",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            } else {
+                                Text("执行脚本中...", style = MaterialTheme.typography.titleSmall)
+                                Text(
+                                    "进度: ${currentScriptProgress.first + 1}/${currentScriptProgress.second}",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
                         }
                     }
                 }
@@ -188,17 +307,25 @@ fun AutoControlScreen() {
 
 enum class TabItem(val tab: Tab, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     CONTROLS(Tab.CONTROLS, "控制", Icons.Default.ArrowBack),
+    AI(Tab.AI, "AI", Icons.Default.Brain),
     SCRIPTS(Tab.SCRIPTS, "脚本", Icons.Default.PlayArrow),
     ELEMENTS(Tab.ELEMENTS, "元素", Icons.Default.List),
     LOGS(Tab.LOGS, "日志", Icons.Default.Home)
 }
 
 enum class Tab {
-    CONTROLS, SCRIPTS, ELEMENTS, LOGS
+    CONTROLS, AI, SCRIPTS, ELEMENTS, LOGS
 }
 
 @Composable
-fun ControlsTab(isAccessibilityEnabled: Boolean, addLog: (String, LogType) -> Unit) {
+fun ControlsTab(
+    isAccessibilityEnabled: Boolean,
+    isScreenCaptureEnabled: Boolean,
+    modelStatus: ModelManager.ModelStatus?,
+    addLog: (String, LogType) -> Unit,
+    onRequestScreenCapture: () -> Unit,
+    onDownloadModel: () -> Unit
+) {
     val context = LocalContext.current
     Column(
         modifier = Modifier
@@ -236,6 +363,78 @@ fun ControlsTab(isAccessibilityEnabled: Boolean, addLog: (String, LogType) -> Un
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("前往设置")
+                    }
+                }
+            }
+        }
+        
+        Card(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("屏幕录制", style = MaterialTheme.typography.titleMedium)
+                    if (isScreenCaptureEnabled) {
+                        Text("已开启", color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                
+                Text(if (isScreenCaptureEnabled) "已获取权限" else "未获取权限")
+                
+                if (!isScreenCaptureEnabled) {
+                    Button(
+                        onClick = { onRequestScreenCapture() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("获取权限")
+                    }
+                }
+            }
+        }
+        
+        Card(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("AI模型", style = MaterialTheme.typography.titleMedium)
+                }
+                
+                if (modelStatus != null) {
+                    Text(
+                        "模型: ${modelStatus.modelName}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        if (modelStatus.downloaded) "已下载" else "未下载",
+                        color = if (modelStatus.downloaded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                    )
+                    
+                    if (!modelStatus.downloaded) {
+                        Button(
+                            onClick = { onDownloadModel() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("下载模型 (约3GB)")
+                        }
                     }
                 }
             }
@@ -356,6 +555,172 @@ fun ControlsTab(isAccessibilityEnabled: Boolean, addLog: (String, LogType) -> Un
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("截图")
+        }
+    }
+}
+
+@Composable
+fun AiControlTab(
+    isAccessibilityEnabled: Boolean,
+    isScreenCaptureEnabled: Boolean,
+    isAiRunning: Boolean,
+    aiGoal: String,
+    aiStep: Int,
+    aiMessage: String,
+    addLog: (String, LogType) -> Unit,
+    onRequestScreenCapture: () -> Unit,
+    onStartAi: (String) -> Unit,
+    onStopAi: () -> Unit,
+    onAnalyzeScreen: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text("AI自主控制", style = MaterialTheme.typography.titleLarge)
+                
+                OutlinedTextField(
+                    value = aiGoal,
+                    onValueChange = { /* handled by AI button */ },
+                    label = { Text("输入你想让AI做的事情") },
+                    placeholder = { Text("例如: 打开抖音，刷5个视频") },
+                    readOnly = isAiRunning,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                
+                if (!isAiRunning) {
+                    var inputText by remember { mutableStateOf("") }
+                    OutlinedTextField(
+                        value = inputText,
+                        onValueChange = { inputText = it },
+                        label = { Text("任务描述") },
+                        placeholder = { Text("例如: 打开抖音，刷5个视频") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    Button(
+                        onClick = {
+                            if (inputText.isNotBlank()) {
+                                if (!isAccessibilityEnabled) {
+                                    addLog("请先开启无障碍服务", LogType.ERROR)
+                                    return@Button
+                                }
+                                if (!isScreenCaptureEnabled) {
+                                    addLog("请先获取屏幕录制权限", LogType.ERROR)
+                                    return@Button
+                                }
+                                onStartAi(inputText)
+                            }
+                        },
+                        enabled = inputText.isNotBlank() && isAccessibilityEnabled && isScreenCaptureEnabled,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("开始执行")
+                    }
+                } else {
+                    Button(
+                        onClick = { onStopAi() },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Stop, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("停止AI")
+                    }
+                }
+            }
+        }
+        
+        if (isAiRunning) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("执行状态", style = MaterialTheme.typography.titleMedium)
+                    Text("目标: $aiGoal")
+                    Text("步骤: $aiStep")
+                    Text("状态: $aiMessage")
+                }
+            }
+        }
+        
+        HorizontalDivider()
+        
+        Text("测试功能", style = MaterialTheme.typography.titleMedium)
+        
+        Button(
+            onClick = { onAnalyzeScreen() },
+            enabled = isScreenCaptureEnabled,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(Icons.Default.Search, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("分析当前屏幕")
+        }
+        
+        if (!isScreenCaptureEnabled) {
+            Button(
+                onClick = { onRequestScreenCapture() },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("获取屏幕录制权限")
+            }
+        }
+        
+        HorizontalDivider()
+        
+        Text("示例任务", style = MaterialTheme.typography.titleMedium)
+        
+        val examples = listOf(
+            "打开抖音，刷视频",
+            "返回主页",
+            "向上滑动页面",
+            "点击屏幕中央"
+        )
+        
+        examples.forEach { example ->
+            Button(
+                onClick = {
+                    if (!isAccessibilityEnabled) {
+                        addLog("请先开启无障碍服务", LogType.ERROR)
+                        return@Button
+                    }
+                    if (!isScreenCaptureEnabled) {
+                        addLog("请先获取屏幕录制权限", LogType.ERROR)
+                        return@Button
+                    }
+                    onStartAi(example)
+                },
+                enabled = !isAiRunning && isAccessibilityEnabled && isScreenCaptureEnabled,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(example)
+            }
         }
     }
 }
@@ -583,15 +948,17 @@ fun LogsTab(logEntries: List<LogEntry>) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            reverseLayout = true
         ) {
             items(logEntries.size, key = { index -> logEntries[index].timestamp }) { index ->
-                val entry = logEntries[index]
+                val entry = logEntries[logEntries.size - 1 - index]
                 val bgColor = when (entry.type) {
                     LogType.INFO -> MaterialTheme.colorScheme.surfaceVariant
                     LogType.SUCCESS -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                     LogType.ERROR -> MaterialTheme.colorScheme.errorContainer
                     LogType.ACTION -> MaterialTheme.colorScheme.tertiaryContainer
+                    LogType.AI -> MaterialTheme.colorScheme.secondaryContainer
                 }
                 val textColor = when (entry.type) {
                     LogType.ERROR -> MaterialTheme.colorScheme.onErrorContainer
