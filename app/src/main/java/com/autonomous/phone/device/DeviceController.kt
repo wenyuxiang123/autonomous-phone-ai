@@ -1,5 +1,6 @@
 package com.autonomous.phone.device
 
+import android.graphics.Path
 import android.graphics.Rect
 import android.view.accessibility.AccessibilityNodeInfo
 
@@ -11,10 +12,34 @@ object DeviceController {
         val service = accessibilityService ?: return false
         try {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                val path = android.graphics.Path()
+                val path = Path()
                 path.moveTo(x, y)
                 val gestureBuilder = android.accessibilityservice.GestureDescription.Builder()
                 gestureBuilder.addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(path, 0, 100))
+                return (service as android.accessibilityservice.AccessibilityService).dispatchGesture(
+                    gestureBuilder.build(), null, null
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return false
+    }
+    
+    fun performDoubleClick(x: Float, y: Float): Boolean {
+        val service = accessibilityService ?: return false
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                val gestureBuilder = android.accessibilityservice.GestureDescription.Builder()
+                
+                val path1 = Path()
+                path1.moveTo(x, y)
+                gestureBuilder.addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(path1, 0, 100))
+                
+                val path2 = Path()
+                path2.moveTo(x, y)
+                gestureBuilder.addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(path2, 200, 100))
+                
                 return (service as android.accessibilityservice.AccessibilityService).dispatchGesture(
                     gestureBuilder.build(), null, null
                 )
@@ -29,7 +54,7 @@ object DeviceController {
         val service = accessibilityService ?: return false
         try {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                val path = android.graphics.Path()
+                val path = Path()
                 path.moveTo(x, y)
                 val gestureBuilder = android.accessibilityservice.GestureDescription.Builder()
                 gestureBuilder.addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(path, 0, duration))
@@ -47,11 +72,62 @@ object DeviceController {
         val service = accessibilityService ?: return false
         try {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                val path = android.graphics.Path()
+                val path = Path()
                 path.moveTo(x1, y1)
                 path.lineTo(x2, y2)
                 val gestureBuilder = android.accessibilityservice.GestureDescription.Builder()
                 gestureBuilder.addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(path, 0, duration))
+                return (service as android.accessibilityservice.AccessibilityService).dispatchGesture(
+                    gestureBuilder.build(), null, null
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return false
+    }
+    
+    fun performPinchZoom(startX1: Float, startY1: Float, startX2: Float, startY2: Float, scaleFactor: Float = 1.5f): Boolean {
+        val service = accessibilityService ?: return false
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                val gestureBuilder = android.accessibilityservice.GestureDescription.Builder()
+                
+                val endX1 = startX1 - (startX1 - startX2) * scaleFactor / 2
+                val endY1 = startY1 - (startY1 - startY2) * scaleFactor / 2
+                val endX2 = startX2 + (startX1 - startX2) * scaleFactor / 2
+                val endY2 = startY2 + (startY1 - startY2) * scaleFactor / 2
+                
+                val path1 = Path()
+                path1.moveTo(startX1, startY1)
+                path1.lineTo(endX1, endY1)
+                
+                val path2 = Path()
+                path2.moveTo(startX2, startY2)
+                path2.lineTo(endX2, endY2)
+                
+                gestureBuilder.addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(path1, 0, 500))
+                gestureBuilder.addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(path2, 0, 500))
+                
+                return (service as android.accessibilityservice.AccessibilityService).dispatchGesture(
+                    gestureBuilder.build(), null, null
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return false
+    }
+    
+    fun performDrag(x1: Float, y1: Float, x2: Float, y2: Float, duration: Long = 800): Boolean {
+        val service = accessibilityService ?: return false
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                val path = Path()
+                path.moveTo(x1, y1)
+                path.lineTo(x2, y2)
+                val gestureBuilder = android.accessibilityservice.GestureDescription.Builder()
+                gestureBuilder.addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(path, 100, duration))
                 return (service as android.accessibilityservice.AccessibilityService).dispatchGesture(
                     gestureBuilder.build(), null, null
                 )
@@ -68,6 +144,14 @@ object DeviceController {
     
     fun scrollDown(): Boolean {
         return performSwipe(540f, 400f, 540f, 1800f, 400)
+    }
+    
+    fun scrollLeft(): Boolean {
+        return performSwipe(900f, 960f, 200f, 960f, 400)
+    }
+    
+    fun scrollRight(): Boolean {
+        return performSwipe(200f, 960f, 900f, 960f, 400)
     }
     
     fun pressHome(): Boolean {

@@ -1,0 +1,235 @@
+﻿2026-05-26T12:54:14.1541284Z Current runner version: '2.334.0'
+2026-05-26T12:54:14.1564581Z ##[group]Runner Image Provisioner
+2026-05-26T12:54:14.1565576Z Hosted Compute Agent
+2026-05-26T12:54:14.1566152Z Version: 20260213.493
+2026-05-26T12:54:14.1566855Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+2026-05-26T12:54:14.1567591Z Build Date: 2026-02-13T00:28:41Z
+2026-05-26T12:54:14.1568271Z Worker ID: {3f5471b9-0147-44e8-a0d6-98d3609627ac}
+2026-05-26T12:54:14.1569018Z Azure Region: westus
+2026-05-26T12:54:14.1569582Z ##[endgroup]
+2026-05-26T12:54:14.1571461Z ##[group]Operating System
+2026-05-26T12:54:14.1572126Z Ubuntu
+2026-05-26T12:54:14.1572633Z 24.04.4
+2026-05-26T12:54:14.1573180Z LTS
+2026-05-26T12:54:14.1573687Z ##[endgroup]
+2026-05-26T12:54:14.1574252Z ##[group]Runner Image
+2026-05-26T12:54:14.1574903Z Image: ubuntu-24.04
+2026-05-26T12:54:14.1575464Z Version: 20260518.149.1
+2026-05-26T12:54:14.1576726Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260518.149/images/ubuntu/Ubuntu2404-Readme.md
+2026-05-26T12:54:14.1578253Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260518.149
+2026-05-26T12:54:14.1579283Z ##[endgroup]
+2026-05-26T12:54:14.1580721Z ##[group]GITHUB_TOKEN Permissions
+2026-05-26T12:54:14.1582648Z Contents: read
+2026-05-26T12:54:14.1583286Z Metadata: read
+2026-05-26T12:54:14.1583908Z Packages: read
+2026-05-26T12:54:14.1584474Z ##[endgroup]
+2026-05-26T12:54:14.1586459Z Secret source: Actions
+2026-05-26T12:54:14.1587659Z Prepare workflow directory
+2026-05-26T12:54:14.1912019Z Prepare all required actions
+2026-05-26T12:54:14.1948446Z Getting action download info
+2026-05-26T12:54:14.8175124Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2026-05-26T12:54:14.9505703Z Download action repository 'actions/setup-java@v5' (SHA:be666c2fcd27ec809703dec50e508c2fdc7f6654)
+2026-05-26T12:54:15.5278747Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-05-26T12:54:15.7568542Z Complete job name: build
+2026-05-26T12:54:15.8320903Z ##[group]Run actions/checkout@v4
+2026-05-26T12:54:15.8321890Z with:
+2026-05-26T12:54:15.8322409Z   repository: wenyuxiang123/autonomous-phone-ai
+2026-05-26T12:54:15.8327962Z   token: ***
+2026-05-26T12:54:15.8328398Z   ssh-strict: true
+2026-05-26T12:54:15.8328839Z   ssh-user: git
+2026-05-26T12:54:15.8329292Z   persist-credentials: true
+2026-05-26T12:54:15.8330002Z   clean: true
+2026-05-26T12:54:15.8330480Z   sparse-checkout-cone-mode: true
+2026-05-26T12:54:15.8331049Z   fetch-depth: 1
+2026-05-26T12:54:15.8331494Z   fetch-tags: false
+2026-05-26T12:54:15.8331950Z   show-progress: true
+2026-05-26T12:54:15.8332425Z   lfs: false
+2026-05-26T12:54:15.8332854Z   submodules: false
+2026-05-26T12:54:15.8333319Z   set-safe-directory: true
+2026-05-26T12:54:15.8334094Z ##[endgroup]
+2026-05-26T12:54:15.9486206Z Syncing repository: wenyuxiang123/autonomous-phone-ai
+2026-05-26T12:54:15.9489028Z ##[group]Getting Git version info
+2026-05-26T12:54:15.9491159Z Working directory is '/home/runner/work/autonomous-phone-ai/autonomous-phone-ai'
+2026-05-26T12:54:15.9493597Z [command]/usr/bin/git version
+2026-05-26T12:54:15.9558920Z git version 2.54.0
+2026-05-26T12:54:15.9586176Z ##[endgroup]
+2026-05-26T12:54:15.9602390Z Temporarily overriding HOME='/home/runner/work/_temp/08f94f9e-fcf5-48c9-8923-0cc5f980f7e6' before making global git config changes
+2026-05-26T12:54:15.9605520Z Adding repository directory to the temporary git global config as a safe directory
+2026-05-26T12:54:15.9616216Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/autonomous-phone-ai/autonomous-phone-ai
+2026-05-26T12:54:15.9660928Z Deleting the contents of '/home/runner/work/autonomous-phone-ai/autonomous-phone-ai'
+2026-05-26T12:54:15.9664305Z ##[group]Initializing the repository
+2026-05-26T12:54:15.9669787Z [command]/usr/bin/git init /home/runner/work/autonomous-phone-ai/autonomous-phone-ai
+2026-05-26T12:54:15.9751045Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-05-26T12:54:15.9753470Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-05-26T12:54:15.9754658Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-05-26T12:54:15.9756178Z hint: call:
+2026-05-26T12:54:15.9756935Z hint:
+2026-05-26T12:54:15.9758100Z hint: 	git config --global init.defaultBranch <name>
+2026-05-26T12:54:15.9759404Z hint:
+2026-05-26T12:54:15.9760943Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-05-26T12:54:15.9763046Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-05-26T12:54:15.9764675Z hint:
+2026-05-26T12:54:15.9765449Z hint: 	git branch -m <name>
+2026-05-26T12:54:15.9766356Z hint:
+2026-05-26T12:54:15.9767644Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-05-26T12:54:15.9770527Z Initialized empty Git repository in /home/runner/work/autonomous-phone-ai/autonomous-phone-ai/.git/
+2026-05-26T12:54:15.9774282Z [command]/usr/bin/git remote add origin https://github.com/wenyuxiang123/autonomous-phone-ai
+2026-05-26T12:54:15.9809479Z ##[endgroup]
+2026-05-26T12:54:15.9811199Z ##[group]Disabling automatic garbage collection
+2026-05-26T12:54:15.9814654Z [command]/usr/bin/git config --local gc.auto 0
+2026-05-26T12:54:15.9843386Z ##[endgroup]
+2026-05-26T12:54:15.9844832Z ##[group]Setting up auth
+2026-05-26T12:54:15.9851228Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-05-26T12:54:15.9884306Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-05-26T12:54:16.0209640Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-05-26T12:54:16.0240883Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-05-26T12:54:16.0456151Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-05-26T12:54:16.0485049Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-05-26T12:54:16.0706660Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-05-26T12:54:16.0740197Z ##[endgroup]
+2026-05-26T12:54:16.0741720Z ##[group]Fetching the repository
+2026-05-26T12:54:16.0750428Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +036affd3935eeebe1024ffe9d9c3e538309239dc:refs/remotes/origin/main
+2026-05-26T12:54:16.5454054Z From https://github.com/wenyuxiang123/autonomous-phone-ai
+2026-05-26T12:54:16.5488169Z  * [new ref]         036affd3935eeebe1024ffe9d9c3e538309239dc -> origin/main
+2026-05-26T12:54:16.5492012Z ##[endgroup]
+2026-05-26T12:54:16.5493521Z ##[group]Determining the checkout info
+2026-05-26T12:54:16.5495091Z ##[endgroup]
+2026-05-26T12:54:16.5498875Z [command]/usr/bin/git sparse-checkout disable
+2026-05-26T12:54:16.5542745Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-05-26T12:54:16.5568968Z ##[group]Checking out the ref
+2026-05-26T12:54:16.5573762Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-05-26T12:54:16.5650314Z Switched to a new branch 'main'
+2026-05-26T12:54:16.5654326Z branch 'main' set up to track 'origin/main'.
+2026-05-26T12:54:16.5660733Z ##[endgroup]
+2026-05-26T12:54:16.5696010Z [command]/usr/bin/git log -1 --format=%H
+2026-05-26T12:54:16.5717417Z 036affd3935eeebe1024ffe9d9c3e538309239dc
+2026-05-26T12:54:16.6013999Z ##[group]Run actions/setup-java@v5
+2026-05-26T12:54:16.6014629Z with:
+2026-05-26T12:54:16.6015049Z   java-version: 17
+2026-05-26T12:54:16.6015517Z   distribution: temurin
+2026-05-26T12:54:16.6016000Z   java-package: jdk
+2026-05-26T12:54:16.6016694Z   check-latest: false
+2026-05-26T12:54:16.6017166Z   server-id: github
+2026-05-26T12:54:16.6017639Z   server-username: GITHUB_ACTOR
+2026-05-26T12:54:16.6018198Z   server-password: GITHUB_TOKEN
+2026-05-26T12:54:16.6018746Z   overwrite-settings: true
+2026-05-26T12:54:16.6019248Z   job-status: success
+2026-05-26T12:54:16.6024972Z   token: ***
+2026-05-26T12:54:16.6025455Z ##[endgroup]
+2026-05-26T12:54:16.7586753Z ##[group]Installed distributions
+2026-05-26T12:54:16.7649069Z Resolved Java 17.0.19+10 from tool-cache
+2026-05-26T12:54:16.7650218Z Setting Java 17.0.19+10 as the default
+2026-05-26T12:54:16.7661093Z Creating toolchains.xml for JDK version 17 from temurin
+2026-05-26T12:54:16.7738129Z Writing to /home/runner/.m2/toolchains.xml
+2026-05-26T12:54:16.7739021Z 
+2026-05-26T12:54:16.7739343Z Java configuration:
+2026-05-26T12:54:16.7740350Z   Distribution: temurin
+2026-05-26T12:54:16.7741088Z   Version: 17.0.19+10
+2026-05-26T12:54:16.7741781Z   Path: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.19-10/x64
+2026-05-26T12:54:16.7742422Z 
+2026-05-26T12:54:16.7743247Z ##[endgroup]
+2026-05-26T12:54:16.7757909Z Creating settings.xml with server-id: github
+2026-05-26T12:54:16.7758705Z Writing to /home/runner/.m2/settings.xml
+2026-05-26T12:54:16.7883505Z ##[group]Run chmod +x gradlew
+2026-05-26T12:54:16.7884164Z [36;1mchmod +x gradlew[0m
+2026-05-26T12:54:16.7924969Z shell: /usr/bin/bash -e {0}
+2026-05-26T12:54:16.7925523Z env:
+2026-05-26T12:54:16.7926173Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.19-10/x64
+2026-05-26T12:54:16.7927307Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.19-10/x64
+2026-05-26T12:54:16.7928165Z ##[endgroup]
+2026-05-26T12:54:16.8059792Z ##[group]Run ./gradlew assembleDebug
+2026-05-26T12:54:16.8060818Z [36;1m./gradlew assembleDebug[0m
+2026-05-26T12:54:16.8091462Z shell: /usr/bin/bash -e {0}
+2026-05-26T12:54:16.8091982Z env:
+2026-05-26T12:54:16.8092621Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.19-10/x64
+2026-05-26T12:54:16.8093745Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.19-10/x64
+2026-05-26T12:54:16.8094603Z ##[endgroup]
+2026-05-26T12:54:18.6974416Z Downloading https://services.gradle.org/distributions/gradle-8.5-bin.zip
+2026-05-26T12:54:21.4148813Z ............10%.............20%............30%.............40%.............50%............60%.............70%.............80%............90%.............100%
+2026-05-26T12:54:22.6499932Z 
+2026-05-26T12:54:22.6501714Z Welcome to Gradle 8.5!
+2026-05-26T12:54:22.6502308Z 
+2026-05-26T12:54:22.6509355Z Here are the highlights of this release:
+2026-05-26T12:54:22.6510249Z  - Support for running on Java 21
+2026-05-26T12:54:22.6511263Z  - Faster first use with Kotlin DSL
+2026-05-26T12:54:22.6511748Z  - Improved error and warning messages
+2026-05-26T12:54:22.6512143Z 
+2026-05-26T12:54:22.6512593Z For more details see https://docs.gradle.org/8.5/release-notes.html
+2026-05-26T12:54:22.6513218Z 
+2026-05-26T12:54:22.8492614Z Starting a Gradle Daemon (subsequent builds will be faster)
+2026-05-26T12:55:07.3514280Z 
+2026-05-26T12:55:07.3550964Z > Configure project :
+2026-05-26T12:55:07.3564297Z w: file:///home/runner/work/autonomous-phone-ai/autonomous-phone-ai/build.gradle.kts:7:24: 'getter for buildDir: File!' is deprecated. Deprecated in Java
+2026-05-26T12:55:12.6531063Z 
+2026-05-26T12:55:12.6537802Z > Task :app:preBuild UP-TO-DATE
+2026-05-26T12:55:12.6542557Z > Task :app:preDebugBuild UP-TO-DATE
+2026-05-26T12:55:12.6549461Z > Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+2026-05-26T12:55:12.7493765Z > Task :app:checkKotlinGradlePluginConfigurationErrors
+2026-05-26T12:55:18.9504860Z > Task :app:generateDebugResValues
+2026-05-26T12:55:19.0541470Z > Task :app:checkDebugAarMetadata
+2026-05-26T12:55:19.0571085Z > Task :app:mapDebugSourceSetPaths
+2026-05-26T12:55:19.0600875Z > Task :app:generateDebugResources
+2026-05-26T12:55:20.5492858Z > Task :app:packageDebugResources
+2026-05-26T12:55:20.7491999Z > Task :app:mergeDebugResources
+2026-05-26T12:55:21.5500960Z > Task :app:createDebugCompatibleScreenManifests
+2026-05-26T12:55:21.6499466Z > Task :app:extractDeepLinksDebug
+2026-05-26T12:55:21.7506196Z > Task :app:parseDebugLocalResources
+2026-05-26T12:55:21.8522609Z > Task :app:processDebugMainManifest
+2026-05-26T12:55:21.9496464Z > Task :app:processDebugManifest
+2026-05-26T12:55:22.0495703Z > Task :app:javaPreCompileDebug
+2026-05-26T12:55:22.0499201Z > Task :app:mergeDebugShaders
+2026-05-26T12:55:22.0500448Z > Task :app:compileDebugShaders NO-SOURCE
+2026-05-26T12:55:22.0501454Z > Task :app:generateDebugAssets UP-TO-DATE
+2026-05-26T12:55:22.0530729Z > Task :app:mergeDebugAssets FROM-CACHE
+2026-05-26T12:55:22.0560613Z > Task :app:compressDebugAssets
+2026-05-26T12:55:22.1511285Z > Task :app:desugarDebugFileDependencies
+2026-05-26T12:55:23.1495885Z > Task :app:mergeDebugJniLibFolders FROM-CACHE
+2026-05-26T12:55:23.2499204Z > Task :app:checkDebugDuplicateClasses
+2026-05-26T12:55:23.2507156Z > Task :app:mergeDebugNativeLibs NO-SOURCE
+2026-05-26T12:55:51.9495761Z > Task :app:processDebugManifestForPackage
+2026-05-26T12:55:53.2492435Z > Task :app:mergeExtDexDebug
+2026-05-26T12:55:58.3531031Z > Task :app:stripDebugDebugSymbols NO-SOURCE
+2026-05-26T12:55:58.3560280Z > Task :app:mergeLibDexDebug
+2026-05-26T12:55:58.8540879Z > Task :app:processDebugResources
+2026-05-26T12:55:59.7493559Z > Task :app:validateSigningDebug
+2026-05-26T12:56:05.5492171Z > Task :app:writeDebugAppMetadata
+2026-05-26T12:56:05.5492765Z > Task :app:writeDebugSigningConfigVersions
+2026-05-26T12:56:14.8512517Z e: file:///home/runner/work/autonomous-phone-ai/autonomous-phone-ai/app/src/main/java/com/autonomous/phone/ui/MainActivity.kt:185:37 Suspension functions can be called only within coroutine body
+2026-05-26T12:56:14.8513838Z 
+2026-05-26T12:56:14.8535638Z > Task :app:compileDebugKotlin FAILED
+2026-05-26T12:56:14.9500543Z 
+2026-05-26T12:56:14.9520906Z 26 actionable tasks: 24 executed, 2 from cache
+2026-05-26T12:56:14.9580541Z FAILURE: Build failed with an exception.
+2026-05-26T12:56:14.9590840Z 
+2026-05-26T12:56:14.9591115Z * What went wrong:
+2026-05-26T12:56:14.9610570Z Execution failed for task ':app:compileDebugKotlin'.
+2026-05-26T12:56:14.9641310Z > A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+2026-05-26T12:56:14.9670469Z    > Compilation error. See log for more details
+2026-05-26T12:56:14.9684585Z 
+2026-05-26T12:56:14.9710484Z * Try:
+2026-05-26T12:56:14.9760554Z > Run with --stacktrace option to get the stack trace.
+2026-05-26T12:56:14.9761326Z > Run with --info or --debug option to get more log output.
+2026-05-26T12:56:14.9761969Z > Run with --scan to get full insights.
+2026-05-26T12:56:14.9762558Z > Get more help at https://help.gradle.org.
+2026-05-26T12:56:14.9762932Z 
+2026-05-26T12:56:14.9763098Z BUILD FAILED in 1m 56s
+2026-05-26T12:56:15.4553692Z ##[error]Process completed with exit code 1.
+2026-05-26T12:56:15.4668975Z Post job cleanup.
+2026-05-26T12:56:15.5981394Z Post job cleanup.
+2026-05-26T12:56:15.6952113Z [command]/usr/bin/git version
+2026-05-26T12:56:15.6987325Z git version 2.54.0
+2026-05-26T12:56:15.7030497Z Temporarily overriding HOME='/home/runner/work/_temp/60c51779-3641-471a-8d04-47d14a1e613c' before making global git config changes
+2026-05-26T12:56:15.7031360Z Adding repository directory to the temporary git global config as a safe directory
+2026-05-26T12:56:15.7042697Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/autonomous-phone-ai/autonomous-phone-ai
+2026-05-26T12:56:15.7075415Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-05-26T12:56:15.7106837Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-05-26T12:56:15.7325229Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-05-26T12:56:15.7351184Z http.https://github.com/.extraheader
+2026-05-26T12:56:15.7363677Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-05-26T12:56:15.7394553Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-05-26T12:56:15.7616120Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-05-26T12:56:15.7648389Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-05-26T12:56:15.7997359Z Cleaning up orphan processes
+2026-05-26T12:56:15.8321151Z Terminate orphan process: pid (2308) (java)
+2026-05-26T12:56:15.8436591Z Terminate orphan process: pid (2505) (java)
+2026-05-26T12:56:15.8451087Z ##[warning]Node.js 20 actions are deprecated. The following actions are running on Node.js 20 and may not work as expected: actions/checkout@v4. Actions will be forced to run with Node.js 24 by default starting June 2nd, 2026. Node.js 20 will be removed from the runner on September 16th, 2026. Please check if updated versions of these actions are available that support Node.js 24. To opt into Node.js 24 now, set the FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true environment variable on the runner or in your workflow file. Once Node.js 24 becomes the default, you can temporarily opt out by setting ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
