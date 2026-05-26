@@ -17,53 +17,22 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
-        android:name=".AutonomousApp"
         android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AutonomousPhone"
-        android:requestLegacyExternalStorage="true"
+        android:theme="@style/Theme.Material3.DayNight.NoActionBar"
         tools:targetApi="31">
 
         <activity
-            android:name=".ui.MainActivity"
-            android:exported="true"
-            android:theme="@style/Theme.AutonomousPhone">
+            android:name=".ui.SimpleMainActivity"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <service
-            android:name=".service.AutonomousAccessibilityService"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/accessibility_service_config" />
-        </service>
-
-        <service
-            android:name=".service.ScreenCaptureService"
-            android:exported="false"
-            android:foregroundServiceType="mediaProjection" />
-
-        <receiver
-            android:name=".service.BootReceiver"
-            android:enabled="true"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
-        </receiver>
 
     </application>
 
