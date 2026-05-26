@@ -67,10 +67,10 @@ fun AutoControlScreen() {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             PermissionCard(
-            enabled = isAccessibilityEnabled,
-            title = "无障碍服务",
-            description = if (isAccessibilityEnabled) "已开启" else "未开启",
-            onEnable = { openAccessibilitySettings(context)
+                enabled = isAccessibilityEnabled,
+                title = "无障碍服务",
+                description = if (isAccessibilityEnabled) "已开启" else "未开启",
+                onEnable = { openAccessibilitySettings(context) }
             )
             
             Divider()
