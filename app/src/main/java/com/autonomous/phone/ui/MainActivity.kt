@@ -302,7 +302,7 @@ fun AutoControlScreen() {
 
 enum class TabItem(val tab: Tab, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     CONTROLS(Tab.CONTROLS, "控制", Icons.Default.ArrowBack),
-    AI(Tab.AI, "AI", Icons.Default.Lightbulb),
+    AI(Tab.AI, "AI", Icons.Default.Settings),
     SCRIPTS(Tab.SCRIPTS, "脚本", Icons.Default.PlayArrow),
     ELEMENTS(Tab.ELEMENTS, "元素", Icons.Default.List),
     LOGS(Tab.LOGS, "日志", Icons.Default.Home)
