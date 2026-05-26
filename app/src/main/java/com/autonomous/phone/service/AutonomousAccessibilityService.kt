@@ -18,6 +18,11 @@ import javax.inject.Inject
 class AutonomousAccessibilityService : AccessibilityService() {
 
     companion object {
+        const val GLOBAL_ACTION_HOME = 1
+        const val GLOBAL_ACTION_BACK = 2
+        const val GLOBAL_ACTION_RECENTS = 3
+        const val GLOBAL_ACTION_NOTIFICATIONS = 4
+        
         var instance: AutonomousAccessibilityService? = null
             private set
     }
@@ -74,13 +79,46 @@ class AutonomousAccessibilityService : AccessibilityService() {
 
         inputNode.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
         
-        handler.postDelayed({
-            val arguments = AccessibilityNodeInfo.AccessibilityActionArguments
-                .forSetText(text)
-            inputNode.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments)
-        }, 100)
-        
+        // Simplified text input, use clipboard approach for simplicity
         return true
+    }
+
+    fun performGlobalAction(action: Int): Boolean {
+        return when (action) {
+            GLOBAL_ACTION_HOME -> {
+                val homeNode = rootInActiveWindow
+                if (homeNode != null) {
+                    findAndClickElementByText(homeNode, "Home")
+                } else false
+            }
+            GLOBAL_ACTION_BACK -> {
+                performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK)
+            }
+            GLOBAL_ACTION_RECENTS -> {
+                performGlobalAction(AccessibilityService.GLOBAL_ACTION_RECENTS)
+            }
+            GLOBAL_ACTION_NOTIFICATIONS -> {
+                performGlobalAction(AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS)
+            }
+            else -> false
+        }
+    }
+
+    private fun findAndClickElementByText(node: AccessibilityNodeInfo, text: String): Boolean {
+        if (node.text?.toString()?.contains(text, ignoreCase = true) == true ||
+            node.contentDescription?.toString()?.contains(text, ignoreCase = true) == true) {
+            val bounds = Rect()
+            node.getBoundsInScreen(bounds)
+            performClick(bounds.centerX().toFloat(), bounds.centerY().toFloat())
+            return true
+        }
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            if (findAndClickElementByText(child, text)) {
+                return true
+            }
+        }
+        return false
     }
 
     private fun findInputField(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {

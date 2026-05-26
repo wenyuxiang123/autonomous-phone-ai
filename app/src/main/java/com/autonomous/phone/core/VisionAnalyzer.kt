@@ -11,10 +11,17 @@ data class ScreenAnalysis(
     val suggestedActions: List<String>
 )
 
+data class BoundingBox(
+    val x: Float,
+    val y: Float,
+    val width: Float,
+    val height: Float
+)
+
 data class UIElement(
     val type: String,
     val text: String?,
-    val boundingBox: Pair<Float, Float, Float, Float>?,
+    val boundingBox: BoundingBox?,
     val clickable: Boolean
 )
 
@@ -41,7 +48,7 @@ class VisionAnalyzer(
             UIElement(
                 type = "screen",
                 text = "当前屏幕",
-                boundingBox = Pair(0f, 0f, bitmap.width.toFloat(), bitmap.height.toFloat()),
+                boundingBox = BoundingBox(0f, 0f, bitmap.width.toFloat(), bitmap.height.toFloat()),
                 clickable = false
             )
         )
