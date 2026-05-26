@@ -1,5 +1,6 @@
 package com.autonomous.phone.ui
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -10,13 +11,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -24,7 +22,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -35,11 +32,8 @@ import com.autonomous.phone.core.VisionAnalyzer
 import com.autonomous.phone.device.DeviceController
 import com.autonomous.phone.device.ScreenCapture
 import com.autonomous.phone.model.ModelManager
-import com.autonomous.phone.script.Action
-import com.autonomous.phone.script.Script
 import com.autonomous.phone.script.ScriptExecutor
 import com.autonomous.phone.script.ScriptManager
-import com.autonomous.phone.service.AutonomousService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -115,7 +109,7 @@ fun AutoControlScreen() {
     val screenCaptureLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == RESULT_OK && result.data != null) {
+        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
             ScreenCapture.initialize(context, result.resultCode, result.data!!)
             isScreenCaptureEnabled = true
             addLog("屏幕录制权限已获取", LogType.SUCCESS)
@@ -307,7 +301,7 @@ fun AutoControlScreen() {
 
 enum class TabItem(val tab: Tab, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     CONTROLS(Tab.CONTROLS, "控制", Icons.Default.ArrowBack),
-    AI(Tab.AI, "AI", Icons.Default.Brain),
+    AI(Tab.AI, "AI", Icons.Default.AutoAwesome),
     SCRIPTS(Tab.SCRIPTS, "脚本", Icons.Default.PlayArrow),
     ELEMENTS(Tab.ELEMENTS, "元素", Icons.Default.List),
     LOGS(Tab.LOGS, "日志", Icons.Default.Home)
@@ -392,7 +386,7 @@ fun ControlsTab(
                 
                 if (!isScreenCaptureEnabled) {
                     Button(
-                        onClick = { onRequestScreenCapture() },
+                        onClick = onRequestScreenCapture,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("获取权限")
@@ -430,7 +424,7 @@ fun ControlsTab(
                     
                     if (!modelStatus.downloaded) {
                         Button(
-                            onClick = { onDownloadModel() },
+                            onClick = onDownloadModel,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text("下载模型 (约3GB)")
@@ -573,6 +567,8 @@ fun AiControlTab(
     onStopAi: () -> Unit,
     onAnalyzeScreen: () -> Unit
 ) {
+    var inputText by remember { mutableStateOf("") }
+    
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -593,8 +589,8 @@ fun AiControlTab(
                 Text("AI自主控制", style = MaterialTheme.typography.titleLarge)
                 
                 OutlinedTextField(
-                    value = aiGoal,
-                    onValueChange = { /* handled by AI button */ },
+                    value = inputText,
+                    onValueChange = { inputText = it },
                     label = { Text("输入你想让AI做的事情") },
                     placeholder = { Text("例如: 打开抖音，刷5个视频") },
                     readOnly = isAiRunning,
@@ -602,15 +598,6 @@ fun AiControlTab(
                 )
                 
                 if (!isAiRunning) {
-                    var inputText by remember { mutableStateOf("") }
-                    OutlinedTextField(
-                        value = inputText,
-                        onValueChange = { inputText = it },
-                        label = { Text("任务描述") },
-                        placeholder = { Text("例如: 打开抖音，刷5个视频") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    
                     Button(
                         onClick = {
                             if (inputText.isNotBlank()) {
@@ -634,13 +621,13 @@ fun AiControlTab(
                     }
                 } else {
                     Button(
-                        onClick = { onStopAi() },
+                        onClick = onStopAi,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.error
                         ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Default.Stop, contentDescription = null)
+                        Icon(Icons.Default.Close, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("停止AI")
                     }
@@ -674,7 +661,7 @@ fun AiControlTab(
         Text("测试功能", style = MaterialTheme.typography.titleMedium)
         
         Button(
-            onClick = { onAnalyzeScreen() },
+            onClick = onAnalyzeScreen,
             enabled = isScreenCaptureEnabled,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -685,7 +672,7 @@ fun AiControlTab(
         
         if (!isScreenCaptureEnabled) {
             Button(
-                onClick = { onRequestScreenCapture() },
+                onClick = onRequestScreenCapture,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("获取屏幕录制权限")
@@ -733,19 +720,8 @@ fun ScriptsTab(
     onExecutionStateChange: (Boolean, Pair<Int, Int>) -> Unit
 ) {
     val scripts = ScriptManager.getAllScripts()
-    var selectedScript by remember { mutableStateOf<Script?>(null) }
+    var selectedScript by remember { mutableStateOf<com.autonomous.phone.script.Script?>(null) }
     val coroutineScope = rememberCoroutineScope()
-    
-    LaunchedEffect(scriptExecutor.isRunning) {
-        onExecutionStateChange(
-            scriptExecutor.isRunning,
-            if (scriptExecutor.isRunning) {
-                scriptExecutor.currentActionIndex to (selectedScript?.actions?.size ?: 0)
-            } else {
-                0 to 0
-            }
-        )
-    }
     
     LaunchedEffect(Unit) {
         scriptExecutor.onActionExecuted = { index, action ->
@@ -803,7 +779,7 @@ fun ScriptsTab(
                                 if (isAccessibilityEnabled && !scriptExecutor.isRunning) {
                                     selectedScript = script
                                     addLog("开始执行脚本: ${script.name}", LogType.INFO)
-                                    coroutineScope.launch(Dispatchers.Main) {
+                                    coroutineScope.launch {
                                         scriptExecutor.execute(script)
                                     }
                                 }
@@ -863,10 +839,7 @@ fun ElementsTab(
         ) {
             Text("屏幕元素", style = MaterialTheme.typography.titleMedium)
             Button(
-                onClick = {
-                    onRefresh()
-                    addLog("刷新元素列表", LogType.INFO)
-                },
+                onClick = onRefresh,
                 enabled = isAccessibilityEnabled
             ) {
                 Text("刷新")
@@ -951,7 +924,7 @@ fun LogsTab(logEntries: List<LogEntry>) {
             verticalArrangement = Arrangement.spacedBy(4.dp),
             reverseLayout = true
         ) {
-            items(logEntries.size, key = { index -> logEntries[index].timestamp }) { index ->
+            items(logEntries.size, key = { index -> logEntries[logEntries.size - 1 - index].timestamp }) { index ->
                 val entry = logEntries[logEntries.size - 1 - index]
                 val bgColor = when (entry.type) {
                     LogType.INFO -> MaterialTheme.colorScheme.surfaceVariant

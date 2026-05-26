@@ -6,7 +6,7 @@ import com.autonomous.phone.device.DeviceController
 import com.autonomous.phone.device.ScreenCapture
 import com.autonomous.phone.device.ScreenElement
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
+import kotlinx.coroutines.coroutineScope
 
 object AutonomousEngine {
     private const val TAG = "AutonomousEngine"
@@ -36,9 +36,9 @@ object AutonomousEngine {
     
     data class TaskState(
         val goal: String,
-        val currentStep: Int = 0,
-        val history: List<Decision> = emptyList(),
-        val isRunning: Boolean = false
+        var currentStep: Int = 0,
+        var history: List<Decision> = emptyList(),
+        var isRunning: Boolean = false
     )
     
     private var currentConfig = EngineConfig()
@@ -54,9 +54,9 @@ object AutonomousEngine {
         context: Context,
         goal: String,
         callback: ((Int, String) -> Unit)? = null
-    ): ExecutionResult {
+    ): ExecutionResult = coroutineScope {
         if (isRunning) {
-            return ExecutionResult(false, 0, "Engine is already running")
+            return@coroutineScope ExecutionResult(false, 0, "Engine is already running")
         }
         
         stepCallback = callback
@@ -64,7 +64,7 @@ object AutonomousEngine {
         currentTask = TaskState(goal = goal, isRunning = true)
         
         try {
-            return internalExecute(context, goal)
+            internalExecute(context, goal)
         } finally {
             isRunning = false
             currentTask?.isRunning = false
@@ -76,7 +76,7 @@ object AutonomousEngine {
         var stepsCompleted = 0
         var retries = 0
         
-        while (stepsCompleted < currentConfig.maxSteps && isActive) {
+        while (stepsCompleted < currentConfig.maxSteps && isRunning) {
             try {
                 val screenshot = ScreenCapture.capture()
                 
@@ -226,9 +226,6 @@ object AutonomousEngine {
             "long_click" -> DeviceController.longClick(decision.x, decision.y)
             "scroll_up" -> DeviceController.scrollUp()
             "scroll_down" -> DeviceController.scrollDown()
-            "scroll_left" -> DeviceController.scrollLeft()
-            "scroll_right" -> DeviceController.scrollRight()
-            "open_app" -> DeviceController.openApp(decision.description)
             "wait" -> delay(1000)
             else -> Log.w(TAG, "Unknown action: ${decision.action}")
         }
