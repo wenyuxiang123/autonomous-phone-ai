@@ -83,7 +83,7 @@ class AutonomousAccessibilityService : AccessibilityService() {
         return true
     }
 
-    fun performGlobalAction(action: Int): Boolean {
+    fun executeGlobalAction(action: Int): Boolean {
         return when (action) {
             GLOBAL_ACTION_HOME -> {
                 val homeNode = rootInActiveWindow

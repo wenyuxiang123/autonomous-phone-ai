@@ -28,19 +28,19 @@ class DeviceController {
     }
 
     fun pressHome(): Boolean {
-        return accessibilityService?.performGlobalAction(AutonomousAccessibilityService.GLOBAL_ACTION_HOME) ?: false
+        return accessibilityService?.executeGlobalAction(AutonomousAccessibilityService.GLOBAL_ACTION_HOME) ?: false
     }
 
     fun pressBack(): Boolean {
-        return accessibilityService?.performGlobalAction(AutonomousAccessibilityService.GLOBAL_ACTION_BACK) ?: false
+        return accessibilityService?.executeGlobalAction(AutonomousAccessibilityService.GLOBAL_ACTION_BACK) ?: false
     }
 
     fun pressRecent(): Boolean {
-        return accessibilityService?.performGlobalAction(AutonomousAccessibilityService.GLOBAL_ACTION_RECENTS) ?: false
+        return accessibilityService?.executeGlobalAction(AutonomousAccessibilityService.GLOBAL_ACTION_RECENTS) ?: false
     }
 
     fun openNotifications(): Boolean {
-        return accessibilityService?.performGlobalAction(AutonomousAccessibilityService.GLOBAL_ACTION_NOTIFICATIONS) ?: false
+        return accessibilityService?.executeGlobalAction(AutonomousAccessibilityService.GLOBAL_ACTION_NOTIFICATIONS) ?: false
     }
 
     fun getScreenElements(): List<ScreenElement> {
