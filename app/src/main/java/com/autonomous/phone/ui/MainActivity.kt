@@ -181,10 +181,7 @@ fun AutoControlScreen() {
                             coroutineScope.launch {
                                 addLog("开始下载模型...", LogType.INFO)
                                 val success = ModelManager.downloadModel(context, ModelManager.TEST_MODEL) { progress ->
-                                    // Update progress on main thread
-                                    withContext(Dispatchers.Main) {
-                                        addLog("下载进度: ${progress.percentage}% (${progress.downloaded}/${progress.total})", LogType.INFO)
-                                    }
+                                    addLog("下载进度: ${progress.percentage}% (${progress.downloaded}/${progress.total})", LogType.INFO)
                                 }
                                 if (success) {
                                     modelStatus = ModelManager.getModelStatus(context, ModelManager.TEST_MODEL)

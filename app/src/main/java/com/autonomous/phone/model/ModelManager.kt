@@ -1,7 +1,8 @@
 package com.autonomous.phone.model
 
 import android.content.Context
-import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -134,7 +135,9 @@ object ModelManager {
                         percentage = ((downloaded * 100) / config.modelSize).coerceAtMost(99).toInt()
                     )
                 }
-                downloadProgressListener?.invoke(progress)
+                Handler(Looper.getMainLooper()).post {
+                    downloadProgressListener?.invoke(progress)
+                }
             }
             
             outputStream.flush()
