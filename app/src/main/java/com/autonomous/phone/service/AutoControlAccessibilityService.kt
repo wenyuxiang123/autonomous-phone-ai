@@ -2,6 +2,7 @@ package com.autonomous.phone.service
 
 import android.accessibilityservice.AccessibilityService
 import android.view.accessibility.AccessibilityEvent
+import com.autonomous.phone.device.DeviceController
 
 class AutoControlAccessibilityService : AccessibilityService() {
     
@@ -13,11 +14,13 @@ class AutoControlAccessibilityService : AccessibilityService() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        DeviceController.accessibilityService = this
     }
     
     override fun onDestroy() {
         super.onDestroy()
         instance = null
+        DeviceController.accessibilityService = null
     }
     
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
