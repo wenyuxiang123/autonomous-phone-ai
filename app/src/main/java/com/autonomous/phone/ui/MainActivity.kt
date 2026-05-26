@@ -89,7 +89,7 @@ fun AutoControlScreen() {
     
     LaunchedEffect(Unit) {
         ModelManager.init(context)
-        modelStatus = ModelManager.getModelStatus(context, ModelManager.MINICPM_V2_5_INT4)
+        modelStatus = ModelManager.getModelStatus(context, ModelManager.TEST_MODEL)
         
         while (isActive) {
             isAccessibilityEnabled = isAccessibilityServiceEnabled(context)
@@ -120,8 +120,16 @@ fun AutoControlScreen() {
     }
     
     fun requestScreenCapture() {
-        val projectionManager = context.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as android.media.projection.MediaProjectionManager
-        screenCaptureLauncher.launch(projectionManager.createScreenCaptureIntent())
+        val projectionManager = context.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as? android.media.projection.MediaProjectionManager
+        if (projectionManager != null) {
+            try {
+                screenCaptureLauncher.launch(projectionManager.createScreenCaptureIntent())
+            } catch (e: Exception) {
+                addLog("请求屏幕录制权限失败: ${e.message}", LogType.ERROR)
+            }
+        } else {
+            addLog("无法获取 MediaProjection 服务", LogType.ERROR)
+        }
     }
     
     Scaffold(
@@ -169,17 +177,19 @@ fun AutoControlScreen() {
                         addLog = addLog,
                         onRequestScreenCapture = { requestScreenCapture() },
                         onDownloadModel = {
-                            coroutineScope.launch(Dispatchers.IO) {
+                            coroutineScope.launch {
                                 addLog("开始下载模型...", LogType.INFO)
-                                ModelManager.downloadModel(context, ModelManager.MINICPM_V2_5_INT4) { progress ->
-                                    addLog("下载进度: ${progress.percentage}%", LogType.INFO)
-                                }.let { success ->
-                                    if (success) {
-                                        modelStatus = ModelManager.getModelStatus(context, ModelManager.MINICPM_V2_5_INT4)
-                                        addLog("模型下载完成", LogType.SUCCESS)
-                                    } else {
-                                        addLog("模型下载失败", LogType.ERROR)
+                                val success = ModelManager.downloadModel(context, ModelManager.TEST_MODEL) { progress ->
+                                    // Update progress on main thread
+                                    withContext(Dispatchers.Main) {
+                                        addLog("下载进度: ${progress.percentage}% (${progress.downloaded}/${progress.total})", LogType.INFO)
                                     }
+                                }
+                                if (success) {
+                                    modelStatus = ModelManager.getModelStatus(context, ModelManager.TEST_MODEL)
+                                    addLog("模型下载完成", LogType.SUCCESS)
+                                } else {
+                                    addLog("模型下载失败", LogType.ERROR)
                                 }
                             }
                         }

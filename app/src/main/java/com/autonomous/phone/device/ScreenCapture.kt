@@ -13,9 +13,11 @@ import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.os.Handler
 import android.os.HandlerThread
+import android.util.Log
 import java.nio.ByteBuffer
 
 object ScreenCapture {
+    private const val TAG = "ScreenCapture"
     private var mediaProjection: MediaProjection? = null
     private var virtualDisplay: VirtualDisplay? = null
     private var imageReader: ImageReader? = null
@@ -29,16 +31,26 @@ object ScreenCapture {
     private const val IMAGE_READER_MAX_IMAGES = 2
 
     fun initialize(context: Context, resultCode: Int, data: Intent) {
-        val projectionManager = context.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-        mediaProjection = projectionManager.getMediaProjection(resultCode, data)
-        
-        val displayMetrics = context.resources.displayMetrics
-        screenWidth = displayMetrics.widthPixels
-        screenHeight = displayMetrics.heightPixels
-        screenDensity = displayMetrics.densityDpi
-        
-        handlerThread = HandlerThread("ScreenCaptureThread").apply { start() }
-        handler = Handler(handlerThread!!.looper)
+        try {
+            val projectionManager = context.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as? MediaProjectionManager
+            if (projectionManager == null) {
+                Log.e(TAG, "MediaProjectionManager not available")
+                return
+            }
+            
+            mediaProjection = projectionManager.getMediaProjection(resultCode, data)
+            
+            val displayMetrics = context.resources.displayMetrics
+            screenWidth = displayMetrics.widthPixels
+            screenHeight = displayMetrics.heightPixels
+            screenDensity = displayMetrics.densityDpi
+            
+            handlerThread = HandlerThread("ScreenCaptureThread").apply { start() }
+            handler = Handler(handlerThread!!.looper)
+            Log.d(TAG, "ScreenCapture initialized successfully")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error initializing ScreenCapture", e)
+        }
     }
 
     fun capture(): Bitmap? {
@@ -92,7 +104,7 @@ object ScreenCapture {
                 image.close()
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Error capturing screen", e)
             return null
         } finally {
             releaseVirtualDisplay()
@@ -111,7 +123,7 @@ object ScreenCapture {
                 rect.height().coerceAtMost(fullScreenshot.height)
             )
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Error capturing screen with rect", e)
             return null
         } finally {
             fullScreenshot.recycle()
@@ -124,9 +136,13 @@ object ScreenCapture {
 
     fun release() {
         releaseVirtualDisplay()
-        imageReader?.close()
-        mediaProjection?.stop()
-        handlerThread?.quitSafely()
+        try {
+            imageReader?.close()
+            mediaProjection?.stop()
+            handlerThread?.quitSafely()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error releasing ScreenCapture", e)
+        }
         
         imageReader = null
         mediaProjection = null
@@ -136,9 +152,13 @@ object ScreenCapture {
     }
 
     private fun releaseVirtualDisplay() {
-        virtualDisplay?.release()
-        virtualDisplay = null
-        imageReader?.close()
-        imageReader = null
+        try {
+            virtualDisplay?.release()
+            virtualDisplay = null
+            imageReader?.close()
+            imageReader = null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error releasing virtual display", e)
+        }
     }
 }

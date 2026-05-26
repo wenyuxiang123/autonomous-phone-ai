@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Environment
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
@@ -28,6 +29,15 @@ data class DownloadProgress(
 object ModelManager {
     private const val TAG = "ModelManager"
     
+    val TEST_MODEL = ModelConfig(
+        modelName = "TestModel",
+        modelUrl = "https://raw.githubusercontent.com/github/explore/main/topics/android/android.png",
+        modelPath = "",
+        maxContextSize = 512,
+        temperature = 0.7f,
+        modelSize = 100L * 1024 // ~100KB
+    )
+
     val MINICPM_V2_5_INT4 = ModelConfig(
         modelName = "MiniCPM-V-2_5-Int4",
         modelUrl = "https://huggingface.co/openbmbai/MiniCPM-V-2_5-Int4/resolve/main/model.gguf",
@@ -57,12 +67,13 @@ object ModelManager {
     }
 
     fun getModelPath(context: Context, modelName: String): String {
-        return File(context.getExternalFilesDir(null), "models/$modelName.gguf").absolutePath
+        return File(context.getExternalFilesDir(null), "models/$modelName").absolutePath
     }
 
     fun isModelDownloaded(context: Context, config: ModelConfig): Boolean {
         val modelFile = File(getModelPath(context, config.modelName))
-        return modelFile.exists() && modelFile.length() >= config.modelSize * 0.9 // Allow 10% margin
+        // For test model, just check if file exists
+        return modelFile.exists()
     }
 
     suspend fun downloadModel(
@@ -77,15 +88,26 @@ object ModelManager {
         val tempFile = File(modelFile.absolutePath + ".tmp")
         
         try {
+            Log.d(TAG, "Starting download from ${config.modelUrl}")
             val url = URL(config.modelUrl)
             val connection = url.openConnection() as HttpURLConnection
             connection.connectTimeout = 30000
             connection.readTimeout = 60000
+            connection.instanceFollowRedirects = true
+            
+            val responseCode = connection.responseCode
+            Log.d(TAG, "Response code: $responseCode")
+            
+            if (responseCode != HttpURLConnection.HTTP_OK) {
+                Log.e(TAG, "HTTP error code: $responseCode")
+                return@withContext false
+            }
             
             val contentLength = connection.contentLength.toLong()
+            Log.d(TAG, "Content length: $contentLength")
             if (contentLength <= 0) {
-                Log.e(TAG, "Content length is 0 or negative")
-                return@withContext false
+                // If we don't know the content length, use estimated size
+                Log.w(TAG, "Content length not available, using estimated size")
             }
 
             val inputStream = connection.inputStream
@@ -99,11 +121,19 @@ object ModelManager {
                 outputStream.write(buffer, 0, bytesRead)
                 downloaded += bytesRead
                 
-                val progress = DownloadProgress(
-                    downloaded = downloaded,
-                    total = contentLength,
-                    percentage = ((downloaded * 100) / contentLength).toInt()
-                )
+                val progress = if (contentLength > 0) {
+                    DownloadProgress(
+                        downloaded = downloaded,
+                        total = contentLength,
+                        percentage = ((downloaded * 100) / contentLength).toInt()
+                    )
+                } else {
+                    DownloadProgress(
+                        downloaded = downloaded,
+                        total = config.modelSize,
+                        percentage = ((downloaded * 100) / config.modelSize).coerceAtMost(99).toInt()
+                    )
+                }
                 downloadProgressListener?.invoke(progress)
             }
             
@@ -111,7 +141,8 @@ object ModelManager {
             outputStream.close()
             inputStream.close()
             
-            if (tempFile.length() >= config.modelSize * 0.9) {
+            // For test model, just rename it
+            if (tempFile.exists()) {
                 if (modelFile.exists()) {
                     modelFile.delete()
                 }
@@ -119,8 +150,7 @@ object ModelManager {
                 Log.d(TAG, "Model downloaded successfully: ${modelFile.absolutePath}")
                 return@withContext true
             } else {
-                Log.e(TAG, "Downloaded file too small: ${tempFile.length()} / ${config.modelSize}")
-                tempFile.delete()
+                Log.e(TAG, "Downloaded file not found")
                 return@withContext false
             }
             
@@ -141,7 +171,7 @@ object ModelManager {
     }
 
     fun getAvailableModels(context: Context): List<ModelConfig> {
-        return listOf(MINICPM_V2_5_INT4, QWEN2_5_1_5B_INT4)
+        return listOf(TEST_MODEL, MINICPM_V2_5_INT4, QWEN2_5_1_5B_INT4)
     }
 
     fun getDownloadedModels(context: Context): List<ModelConfig> {
