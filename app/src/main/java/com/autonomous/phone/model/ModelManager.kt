@@ -5,7 +5,6 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
@@ -32,11 +31,11 @@ object ModelManager {
     
     val TEST_MODEL = ModelConfig(
         modelName = "TestModel",
-        modelUrl = "https://raw.githubusercontent.com/github/explore/main/topics/android/android.png",
+        modelUrl = "https://github.com/wenyuxiang123/autonomous-phone-ai/raw/main/README.md",
         modelPath = "",
         maxContextSize = 512,
         temperature = 0.7f,
-        modelSize = 100L * 1024 // ~100KB
+        modelSize = 10L * 1024 // 10KB minimum
     )
 
     val MINICPM_V2_5_INT4 = ModelConfig(
@@ -65,6 +64,7 @@ object ModelManager {
         if (!modelsDir.exists()) {
             modelsDir.mkdirs()
         }
+        Log.d(TAG, "Models directory: ${modelsDir.absolutePath}")
     }
 
     fun getModelPath(context: Context, modelName: String): String {
@@ -73,8 +73,9 @@ object ModelManager {
 
     fun isModelDownloaded(context: Context, config: ModelConfig): Boolean {
         val modelFile = File(getModelPath(context, config.modelName))
-        // For test model, just check if file exists
-        return modelFile.exists()
+        val exists = modelFile.exists() && modelFile.length() >= config.modelSize
+        Log.d(TAG, "Checking if model ${config.modelName} is downloaded: $exists (size: ${modelFile.length()} / ${config.modelSize})")
+        return exists
     }
 
     suspend fun downloadModel(
@@ -88,6 +89,11 @@ object ModelManager {
         val modelFile = File(getModelPath(context, config.modelName))
         val tempFile = File(modelFile.absolutePath + ".tmp")
         
+        // Delete existing temp file if any
+        if (tempFile.exists()) {
+            tempFile.delete()
+        }
+        
         try {
             Log.d(TAG, "Starting download from ${config.modelUrl}")
             val url = URL(config.modelUrl)
@@ -95,21 +101,22 @@ object ModelManager {
             connection.connectTimeout = 30000
             connection.readTimeout = 60000
             connection.instanceFollowRedirects = true
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0")
             
             val responseCode = connection.responseCode
             Log.d(TAG, "Response code: $responseCode")
             
             if (responseCode != HttpURLConnection.HTTP_OK) {
                 Log.e(TAG, "HTTP error code: $responseCode")
+                Handler(Looper.getMainLooper()).post {
+                    progressListener(DownloadProgress(0, config.modelSize, 0))
+                }
                 return@withContext false
             }
             
             val contentLength = connection.contentLength.toLong()
-            Log.d(TAG, "Content length: $contentLength")
-            if (contentLength <= 0) {
-                // If we don't know the content length, use estimated size
-                Log.w(TAG, "Content length not available, using estimated size")
-            }
+            val totalSize = if (contentLength > 0) contentLength else config.modelSize
+            Log.d(TAG, "Content length: $contentLength, using total size: $totalSize")
 
             val inputStream = connection.inputStream
             val outputStream = FileOutputStream(tempFile)
@@ -117,43 +124,60 @@ object ModelManager {
             val buffer = ByteArray(8192)
             var downloaded = 0L
             var bytesRead: Int
+            var lastReportedProgress = -1
             
             while (inputStream.read(buffer).also { bytesRead = it } != -1) {
                 outputStream.write(buffer, 0, bytesRead)
                 downloaded += bytesRead
                 
-                val progress = if (contentLength > 0) {
-                    DownloadProgress(
-                        downloaded = downloaded,
-                        total = contentLength,
-                        percentage = ((downloaded * 100) / contentLength).toInt()
-                    )
+                // Calculate and report progress
+                val percentage = if (totalSize > 0) {
+                    ((downloaded * 100) / totalSize).toInt().coerceIn(0, 100)
                 } else {
-                    DownloadProgress(
-                        downloaded = downloaded,
-                        total = config.modelSize,
-                        percentage = ((downloaded * 100) / config.modelSize).coerceAtMost(99).toInt()
-                    )
+                    ((downloaded * 100) / config.modelSize).toInt().coerceIn(0, 99)
                 }
-                Handler(Looper.getMainLooper()).post {
-                    downloadProgressListener?.invoke(progress)
+                
+                // Only report progress if it changed
+                if (percentage != lastReportedProgress) {
+                    lastReportedProgress = percentage
+                    val progress = DownloadProgress(
+                        downloaded = downloaded,
+                        total = totalSize,
+                        percentage = percentage
+                    )
+                    Handler(Looper.getMainLooper()).post {
+                        downloadProgressListener?.invoke(progress)
+                    }
+                    Log.d(TAG, "Download progress: $percentage% ($downloaded / $totalSize)")
                 }
             }
             
             outputStream.flush()
             outputStream.close()
             inputStream.close()
+            connection.disconnect()
             
-            // For test model, just rename it
-            if (tempFile.exists()) {
+            Log.d(TAG, "Download completed, temp file size: ${tempFile.length()}")
+            
+            // Verify downloaded file
+            if (tempFile.exists() && tempFile.length() > 0) {
                 if (modelFile.exists()) {
                     modelFile.delete()
                 }
-                tempFile.renameTo(modelFile)
-                Log.d(TAG, "Model downloaded successfully: ${modelFile.absolutePath}")
-                return@withContext true
+                val success = tempFile.renameTo(modelFile)
+                if (success) {
+                    Log.d(TAG, "Model downloaded successfully: ${modelFile.absolutePath}, size: ${modelFile.length()}")
+                    // Report 100% progress
+                    Handler(Looper.getMainLooper()).post {
+                        downloadProgressListener?.invoke(DownloadProgress(config.modelSize, config.modelSize, 100))
+                    }
+                    return@withContext true
+                } else {
+                    Log.e(TAG, "Failed to rename temp file to model file")
+                    return@withContext false
+                }
             } else {
-                Log.e(TAG, "Downloaded file not found")
+                Log.e(TAG, "Downloaded file is empty or not found")
                 return@withContext false
             }
             
@@ -161,6 +185,9 @@ object ModelManager {
             Log.e(TAG, "Error downloading model", e)
             if (tempFile.exists()) {
                 tempFile.delete()
+            }
+            Handler(Looper.getMainLooper()).post {
+                progressListener(DownloadProgress(0, config.modelSize, 0))
             }
             return@withContext false
         }
@@ -170,6 +197,7 @@ object ModelManager {
         val modelFile = File(getModelPath(context, config.modelName))
         if (modelFile.exists()) {
             modelFile.delete()
+            Log.d(TAG, "Deleted model: ${modelFile.absolutePath}")
         }
     }
 
