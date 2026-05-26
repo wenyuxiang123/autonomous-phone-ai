@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -17,7 +18,9 @@ data class ModelConfig(
     val modelPath: String,
     val maxContextSize: Int,
     val temperature: Float,
-    val modelSize: Long
+    val modelSize: Long,
+    val isBuiltIn: Boolean = false,
+    val builtInAssetPath: String = ""
 )
 
 data class DownloadProgress(
@@ -35,7 +38,9 @@ object ModelManager {
         modelPath = "",
         maxContextSize = 512,
         temperature = 0.7f,
-        modelSize = 10L * 1024 // 10KB minimum
+        modelSize = 1L,
+        isBuiltIn = true,
+        builtInAssetPath = "models/TestModel"
     )
 
     val MINICPM_V2_5_INT4 = ModelConfig(
@@ -44,7 +49,7 @@ object ModelManager {
         modelPath = "",
         maxContextSize = 4096,
         temperature = 0.7f,
-        modelSize = 3L * 1024 * 1024 * 1024 // ~3GB
+        modelSize = 3L * 1024 * 1024 * 1024
     )
 
     val QWEN2_5_1_5B_INT4 = ModelConfig(
@@ -53,7 +58,7 @@ object ModelManager {
         modelPath = "",
         maxContextSize = 2048,
         temperature = 0.7f,
-        modelSize = 1L * 1024 * 1024 * 1024 // ~1GB
+        modelSize = 1L * 1024 * 1024 * 1024
     )
 
     private var currentConfig: ModelConfig? = null
@@ -65,6 +70,51 @@ object ModelManager {
             modelsDir.mkdirs()
         }
         Log.d(TAG, "Models directory: ${modelsDir.absolutePath}")
+        
+        copyBuiltInModels(context)
+    }
+
+    private fun copyBuiltInModels(context: Context) {
+        val builtInModels = listOf(TEST_MODEL)
+        for (model in builtInModels) {
+            if (model.isBuiltIn && model.builtInAssetPath.isNotEmpty()) {
+                copyFromAssets(context, model)
+            }
+        }
+    }
+
+    private fun copyFromAssets(context: Context, config: ModelConfig) {
+        val modelFile = File(getModelPath(context, config.modelName))
+        val tempFile = File(modelFile.absolutePath + ".tmp")
+        
+        try {
+            val inputStream: InputStream = context.assets.open(config.builtInAssetPath)
+            val outputStream = FileOutputStream(tempFile)
+            
+            val buffer = ByteArray(8192)
+            var bytesRead: Int
+            var totalBytes = 0L
+            while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                outputStream.write(buffer, 0, bytesRead)
+                totalBytes += bytesRead
+            }
+            
+            outputStream.flush()
+            outputStream.close()
+            inputStream.close()
+            
+            if (modelFile.exists()) {
+                modelFile.delete()
+            }
+            tempFile.renameTo(modelFile)
+            
+            Log.d(TAG, "Copied built-in model: ${config.modelName}, size: $totalBytes")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to copy built-in model ${config.modelName}", e)
+            if (tempFile.exists()) {
+                tempFile.delete()
+            }
+        }
     }
 
     fun getModelPath(context: Context, modelName: String): String {
@@ -73,8 +123,8 @@ object ModelManager {
 
     fun isModelDownloaded(context: Context, config: ModelConfig): Boolean {
         val modelFile = File(getModelPath(context, config.modelName))
-        val exists = modelFile.exists() && modelFile.length() >= config.modelSize
-        Log.d(TAG, "Checking if model ${config.modelName} is downloaded: $exists (size: ${modelFile.length()} / ${config.modelSize})")
+        val exists = modelFile.exists() && modelFile.length() > 0
+        Log.d(TAG, "Checking if model ${config.modelName} is downloaded: $exists (size: ${modelFile.length()})")
         return exists
     }
 
@@ -83,13 +133,24 @@ object ModelManager {
         config: ModelConfig,
         progressListener: (DownloadProgress) -> Unit
     ): Boolean = withContext(Dispatchers.IO) {
+        if (config.isBuiltIn) {
+            copyFromAssets(context, config)
+            val exists = isModelDownloaded(context, config)
+            if (exists) {
+                Handler(Looper.getMainLooper()).post {
+                    progressListener(DownloadProgress(1, 1, 100))
+                }
+                return@withContext true
+            }
+            return@withContext false
+        }
+        
         downloadProgressListener = progressListener
         currentConfig = config
         
         val modelFile = File(getModelPath(context, config.modelName))
         val tempFile = File(modelFile.absolutePath + ".tmp")
         
-        // Delete existing temp file if any
         if (tempFile.exists()) {
             tempFile.delete()
         }
@@ -130,14 +191,12 @@ object ModelManager {
                 outputStream.write(buffer, 0, bytesRead)
                 downloaded += bytesRead
                 
-                // Calculate and report progress
                 val percentage = if (totalSize > 0) {
                     ((downloaded * 100) / totalSize).toInt().coerceIn(0, 100)
                 } else {
                     ((downloaded * 100) / config.modelSize).toInt().coerceIn(0, 99)
                 }
                 
-                // Only report progress if it changed
                 if (percentage != lastReportedProgress) {
                     lastReportedProgress = percentage
                     val progress = DownloadProgress(
@@ -159,7 +218,6 @@ object ModelManager {
             
             Log.d(TAG, "Download completed, temp file size: ${tempFile.length()}")
             
-            // Verify downloaded file
             if (tempFile.exists() && tempFile.length() > 0) {
                 if (modelFile.exists()) {
                     modelFile.delete()
@@ -167,7 +225,6 @@ object ModelManager {
                 val success = tempFile.renameTo(modelFile)
                 if (success) {
                     Log.d(TAG, "Model downloaded successfully: ${modelFile.absolutePath}, size: ${modelFile.length()}")
-                    // Report 100% progress
                     Handler(Looper.getMainLooper()).post {
                         downloadProgressListener?.invoke(DownloadProgress(config.modelSize, config.modelSize, 100))
                     }
@@ -194,6 +251,10 @@ object ModelManager {
     }
 
     fun deleteModel(context: Context, config: ModelConfig) {
+        if (config.isBuiltIn) {
+            Log.w(TAG, "Cannot delete built-in model: ${config.modelName}")
+            return
+        }
         val modelFile = File(getModelPath(context, config.modelName))
         if (modelFile.exists()) {
             modelFile.delete()
@@ -213,7 +274,8 @@ object ModelManager {
         val modelName: String,
         val downloaded: Boolean,
         val fileSize: Long?,
-        val requiredSpace: Long
+        val requiredSpace: Long,
+        val isBuiltIn: Boolean
     )
 
     fun getModelStatus(context: Context, config: ModelConfig): ModelStatus {
@@ -222,7 +284,8 @@ object ModelManager {
             modelName = config.modelName,
             downloaded = isModelDownloaded(context, config),
             fileSize = if (modelFile.exists()) modelFile.length() else null,
-            requiredSpace = config.modelSize
+            requiredSpace = config.modelSize,
+            isBuiltIn = config.isBuiltIn
         )
     }
 }
